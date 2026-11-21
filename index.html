@@ -57,7 +57,7 @@ section{display:flex;flex-direction:column;gap:12px;padding-top:18px}
 .daybar{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .daybar h2{font-size:20px}
 .navbtn{width:44px;height:44px;flex:none;border-radius:50%;border:1px solid var(--line-strong);background:var(--bg-1);color:var(--ink);font-size:18px;cursor:pointer}
-.navbtn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label.btn:focus-within,label.go:focus-within,.navbtn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .wd{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;border-radius:10px;border:1px solid transparent;background:none;color:var(--ink);cursor:pointer;font:inherit}
 .wd small{font-size:11px;color:var(--muted)}
@@ -545,6 +545,28 @@ const WD=['日','一','二','三','四','五','六'];
 const DEF={start:null,exam:null,off:[6,0],workMin:90,offMin:240,target:800,pw:20,po:10,name:'',noExam:true};
 const store={get(k,d){try{const v=localStorage.getItem('hk.'+k);return v?JSON.parse(v):d}catch(e){return d}},
   set(k,v){try{localStorage.setItem('hk.'+k,JSON.stringify(v))}catch(e){}}};
+// 請瀏覽器把資料標成「不要自動清掉」
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+/* ===== 備份與還原：所有 hk. 開頭的資料打包成一個檔案 ===== */
+const BK_FILE=()=>'多益備考備份-'+todayStr+'.json';
+function backupData(){const data={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('hk.')&&k!=='hk.lastBackup')data[k]=localStorage.getItem(k)}return{app:'hk',v:1,at:new Date().toISOString(),data}}
+async function exportBackup(){
+  const txt=JSON.stringify(backupData()),f=BK_FILE();let ok=false;
+  try{const file=new File([txt],f,{type:'application/json'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'多益備考備份'});ok=true}}catch(e){if(e&&e.name==='AbortError')return bkMsg('已取消，沒有備份。')}
+  if(!ok){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download=f;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+  store.set('lastBackup',todayStr);bkMsg('已備份。檔案請存到「檔案」App、雲端硬碟或傳給自己。')
+}
+function bkMsg(t){const el=document.getElementById('bkMsg');if(el)el.textContent=t}
+function importBackup(file){
+  if(!file)return;const rd=new FileReader();
+  rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||o.app!=='hk'||!o.data||typeof o.data!=='object')throw 0;
+      const keys=Object.keys(o.data).filter(k=>k.startsWith('hk.'));if(!keys.length||!o.data['hk.settings'])throw 0;
+      for(const k of keys)localStorage.setItem(k,o.data[k]);
+      localStorage.setItem('hk.lastBackup',JSON.stringify(String(o.at||'').slice(0,10)||todayStr));location.reload()}
+    catch(e){bkMsg('這不是多益備考的備份檔，請重新選擇。')}};
+  rd.onerror=()=>bkMsg('讀不到這個檔案，請重新選擇。');rd.readAsText(file)
+}
 let S=Object.assign({},DEF,store.get('settings',{}));
 let DONE=store.get('done',{});
 let askDel=null;
@@ -784,7 +806,9 @@ function renderSetup(){
     <label>休假日可讀（分鐘）<input id="uOff" type="number" inputmode="numeric" min="150" max="600" step="15" value="240"></label>
     <p class="err" id="uErr" aria-live="polite"></p>
     <button class="btn full" type="submit">排出我的計畫</button>
-  </form></section>`;
+  </form>
+  <div class="note">之前用過、有備份檔？<label class="go" style="display:inline-flex;margin-left:6px;vertical-align:middle;align-items:center">從備份還原<input type="file" id="bkFile" accept=".json,application/json" class="sr"></label>
+    <span id="bkMsg" aria-live="polite" style="display:block;margin-top:6px"></span></div></section>`;
 }
 function renderSet(){
   return `<section><h2 style="font-size:18px">設定</h2>
@@ -807,6 +831,13 @@ function renderSet(){
     <label>休假日提醒時間<select id="po">${hrs(S.po)}</select></label>
     <button class="btn full" type="button" id="pushOn">${PUSHID?'重新同步提醒':'開啟每日提醒'}</button>
     <div class="full muted" id="pushMsg" style="font-size:13px">${PUSHID?'提醒已開啟。修改時間或休假日會自動同步，不用再做任何事。':'每天在設定的時間推播當天的讀書任務。需要 iOS 16.4 以上，並從主畫面的 APP 圖示打開。'}</div>
+  </div>
+  <h2 style="font-size:18px;padding-top:8px">備份與還原</h2>
+  <div class="sc" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-md);padding:16px">
+    <p class="full muted" style="margin:0;font-size:13px">紀錄只存在這支手機的這個 APP 裡。刪掉主畫面圖示、換手機或清除 Safari 資料都會不見，建議每週備份一次。</p>
+    <button class="btn" type="button" id="bkExport">備份紀錄</button>
+    <label class="btn ghost" style="flex-direction:row;justify-content:center;align-items:center;color:var(--ink);font-size:15px">從檔案還原<input type="file" id="bkFile" accept=".json,application/json" class="sr"></label>
+    <p class="full muted" id="bkMsg" aria-live="polite" style="margin:0;font-size:13px">${(()=>{const b=store.get('lastBackup','');return b?'上次備份：'+b:'還沒有備份過。'})()}</p>
   </div>
   <button class="btn ghost" id="reset">${confirmReset?'再按一次確認清除所有打勾':'清除所有打勾紀錄'}</button></section>`;
 }
@@ -1150,9 +1181,10 @@ document.addEventListener('click',e=>{
   if(askDel!==null&&!e.target.closest('.del')){askDel=null;if(tab==='score'){render()}}
   const of=e.target.closest('[data-off]');if(of){const i=+of.dataset.off;S.off=S.off.includes(i)?S.off.filter(x=>x!==i):S.off.concat(i);of.classList.toggle('on');of.setAttribute('aria-pressed',S.off.includes(i));return}
   if(e.target.id==='pushOn'){enablePush();return}
+  if(e.target.id==='bkExport'){exportBackup();return}
   if(e.target.id==='reset'){if(confirmReset){DONE={};store.set('done',DONE);confirmReset=false}else confirmReset=true;render()}
 });
-document.addEventListener('change',e=>{if(e.target.id==='uNoExam'){document.getElementById('uExamWrap').hidden=e.target.checked;if(!e.target.checked)document.getElementById('uExam').focus();return}if(e.target.id==='rate'){TTS.rate=+e.target.value;store.set('rate',TTS.rate);return}if(e.target.id==='pw'||e.target.id==='po'){S[e.target.id]=+e.target.value;store.set('settings',S);if(PUSHID)syncPush().then(ok=>pushMsg(ok?'已同步新的提醒時間。':'同步失敗，請稍後按「重新同步提醒」。'))}});
+document.addEventListener('change',e=>{if(e.target.id==='bkFile'){importBackup(e.target.files[0]);e.target.value='';return}if(e.target.id==='uNoExam'){document.getElementById('uExamWrap').hidden=e.target.checked;if(!e.target.checked)document.getElementById('uExam').focus();return}if(e.target.id==='rate'){TTS.rate=+e.target.value;store.set('rate',TTS.rate);return}if(e.target.id==='pw'||e.target.id==='po'){S[e.target.id]=+e.target.value;store.set('settings',S);if(PUSHID)syncPush().then(ok=>pushMsg(ok?'已同步新的提醒時間。':'同步失敗，請稍後按「重新同步提醒」。'))}});
 document.addEventListener('submit',e=>{
   e.preventDefault();
   if(e.target.id==='scForm'){

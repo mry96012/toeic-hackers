@@ -171,6 +171,12 @@ nav button.on svg{filter:drop-shadow(0 0 6px var(--accent-glow))}
 .card{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-card);padding:24px;cursor:pointer;text-align:center}
 .card .w{font-size:30px;font-weight:600;font-family:Georgia,serif;word-break:break-word}
 .card .m{font-size:18px}
+.say{position:relative;display:inline-grid;place-items:center;width:44px;height:44px;flex:none;border-radius:50%;border:1px solid var(--line-strong);background:var(--bg-1);color:var(--ink);cursor:pointer;padding:0}
+.say svg{width:20px;height:20px;fill:currentColor}
+.say.big{width:52px;height:52px;border-color:var(--accent);color:var(--accent);box-shadow:0 0 16px var(--accent-soft)}
+.say.big svg{width:24px;height:24px}
+.warnchip{background:rgba(255,107,139,.12);border-color:rgba(255,107,139,.4)}
+.warnchip::before{background:var(--M);box-shadow:0 0 8px var(--M)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .go{position:relative;font:inherit;font-size:13px;font-weight:500;color:var(--accent);background:var(--bg-1);border:1px solid var(--accent);border-radius:var(--pill);padding:6px 14px;min-height:32px;cursor:pointer}
 .go::after,.del::after{content:"";position:absolute;inset:-8px -4px}
@@ -849,6 +855,7 @@ let WRONG=store.get('wrong',{p5:[],p7:[]});
 let P5LOG=store.get('p5log',[]);
 let P7DONE=store.get('p7done',{});
 let VLV=store.get('vocab',{});
+let VAUTO=store.get('vauto',true);
 let Q=null,timerId=null;
 const LET='ABCD';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -887,10 +894,22 @@ function startP7(pi,onlyWrong){
   Q={kind:'p7',pi,items:qs.map(k=>({k,opts:mkOpts(P.q[k][1]),pick:-1})),t0:Date.now(),limit:qs.length*60,done:false};
   tab='prac';render();startTimer();window.scrollTo(0,0);
 }
-function startVocab(){
-  const sorted=shuf(VOC.map((v,i)=>i)).sort((a,b)=>(VLV[VOC[a].w]||0)-(VLV[VOC[b].w]||0));
-  Q={kind:'vocab',ids:sorted.slice(0,20),cur:0,flip:false,known:0,done:false};
-  tab='prac';render();
+function startVocab(retry){
+  let ids;
+  if(retry){const w=new Set(WRONG.v);ids=shuf(VOC.map((v,i)=>i).filter(i=>w.has(VOC[i].w))).slice(0,20)}
+  else{const w=new Set(WRONG.v);// 先放不熟的字，再放熟練度低的字
+    ids=shuf(VOC.map((v,i)=>i)).sort((a,b)=>(w.has(VOC[b].w)-w.has(VOC[a].w))||((VLV[VOC[a].w]||0)-(VLV[VOC[b].w]||0))).slice(0,20)}
+  if(!ids.length){pracView='wrong';Q=null;tab='prac';render();return}
+  Q={kind:'vocab',ids,cur:0,flip:false,known:0,miss:[],retry:!!retry,done:false};
+  tab='prac';render();sayWord();
+}
+function sayWord(force){if(!Q||Q.kind!=='vocab'||Q.cur>=Q.ids.length||!(force||VAUTO))return;speak([{t:VOC[Q.ids[Q.cur]].w,who:'W',gap:0}])}
+function markWord(ok){
+  const w=VOC[Q.ids[Q.cur]].w,has=WRONG.v.includes(w);
+  VLV[w]=Math.max(0,Math.min(3,(VLV[w]||0)+(ok?1:-1)));
+  if(ok){Q.known++;if(has)WRONG.v=WRONG.v.filter(x=>x!==w)}
+  else{Q.miss.push(w);if(!has)WRONG.v.push(w)}
+  store.set('vocab',VLV);store.set('wrong',WRONG);Q.cur++;Q.flip=false;render();sayWord();
 }
 function finish(){
   if(Q.kind==='l3')return finishL();
@@ -909,7 +928,7 @@ function finish(){
   Q.c=c;store.set('wrong',WRONG);render();window.scrollTo(0,0);
 }
 function renderPracHome(){
-  const last=P5LOG.slice(-1)[0],p7n=Object.keys(P7DONE).length,known=VOC.filter(v=>(VLV[v.w]||0)>=2).length,wn=WRONG.p5.length+WRONG.p7.length+WRONG.l2.length+WRONG.l3.length,l2last=L2LOG.slice(-1)[0],l3n=Object.keys(L3DONE).length;
+  const last=P5LOG.slice(-1)[0],p7n=Object.keys(P7DONE).length,known=VOC.filter(v=>(VLV[v.w]||0)>=2).length,wn=WRONG.p5.length+WRONG.p7.length+WRONG.l2.length+WRONG.l3.length+WRONG.v.length,l2last=L2LOG.slice(-1)[0],l3n=Object.keys(L3DONE).length;
   return `<section>
   <div class="eyebrow">聽力</div>
   <div class="modes">
@@ -921,7 +940,7 @@ function renderPracHome(){
   <div class="modes">
     <button class="mode" data-act="p5"><b>Part 5 限時</b><span>30 題・9 分鐘，題庫 ${B.p5.length} 題</span><span class="big">${last?last.c+'/'+last.n:'—'}</span><span>${last?'上次用時 '+fmt(last.s):'還沒做過'}</span></button>
     <button class="mode" data-act="p7list"><b>Part 7 閱讀</b><span>每題限時 1 分鐘，${B.p7.length} 篇</span><span class="big">${p7n}/${B.p7.length}</span><span>已完成篇數</span></button>
-    <button class="mode" data-act="vocab"><b>單字卡</b><span>每輪 20 張，不熟的優先</span><span class="big">${known}/${VOC.length}</span><span>已熟記</span></button>
+    <button class="mode" data-act="vocab"><b>單字卡</b><span>每輪 20 張，不熟的優先</span><span class="big">${known}/${VOC.length}</span><span>已熟記${WRONG.v.length?'・不熟 '+WRONG.v.length:''}</span></button>
     <button class="mode" data-act="wrong"><b>錯題本</b><span>答錯的題目自動收進來</span><span class="big">${wn}</span><span>待訂正</span></button>
   </div>
   ${P5LOG.length?`<div><div class="eyebrow" style="margin-bottom:6px">Part 5 紀錄</div><div class="slist">${P5LOG.slice(-5).reverse().map(l=>`<div class="srow" style="grid-template-columns:1fr auto auto"><span class="mono">${l.d}</span><span class="mono">${l.c}/${l.n}</span><span class="mono ${l.s<=540?'ok':'bad'}">${fmt(l.s)}</span></div>`).join('')}</div></div>`:''}
@@ -940,8 +959,10 @@ function renderWrong(){
   ${byL.length?`<div class="rows">${byL.map(si=>`<button class="row" data-l3w="${si}" style="grid-template-columns:1fr auto"><span class="s">${esc(L3[si].title)}<br><small class="muted">${L3[si].t}</small></span><span class="st mono bad">${l3.filter(x=>x[0]===si).length} 題</span></button>`).join('')}</div>`:''}
   ${WRONG.p5.length?`<button class="btn" data-act="p5retry">重做 Part 5 錯題（${WRONG.p5.length} 題）</button>`:''}
   ${byP.length?`<div class="rows">${byP.map(pi=>`<button class="row" data-p7w="${pi}" style="grid-template-columns:1fr auto"><span class="s">${esc(B.p7[pi].title)}</span><span class="st mono bad">${p7.filter(x=>x[0]===pi).length} 題</span></button>`).join('')}</div>`:''}
-  ${!WRONG.p5.length&&!byP.length&&!WRONG.l2.length&&!byL.length?'<div class="note">目前沒有錯題。做完練習後，答錯的題目會自動收進這裡，重做答對就會移除。</div><button class="btn" data-act="l2">先做一組 Part 2 聽力</button>':''}
-  ${WRONG.p5.length?`<div class="slist">${WRONG.p5.map(i=>{const q=B.p5[i];return `<div class="rv"><span class="s">${esc(q[0].replace('___','<u>'+q[1].split('|')[0]+'</u>')).replace(/&lt;(\/?)u&gt;/g,'<$1u>')}</span><span class="exp">${esc(q[2])}｜${esc(q[3])}</span></div>`}).join('')}</div>`:''}
+  ${WRONG.v.length?`<button class="btn" data-act="vocabretry">練習不熟的單字（${WRONG.v.length} 個）</button>`:''}
+  ${!WRONG.p5.length&&!byP.length&&!WRONG.l2.length&&!byL.length&&!WRONG.v.length?'<div class="note">目前沒有錯題。做完練習後，答錯的題目會自動收進這裡，重做答對就會移除。</div><button class="btn" data-act="l2">先做一組 Part 2 聽力</button>':''}
+  ${WRONG.v.length?`<div class="eyebrow">不熟的單字</div>${wordList(WRONG.v)}`:''}
+  ${WRONG.p5.length?`<div class="eyebrow">Part 5 錯題</div><div class="slist">${WRONG.p5.map(i=>{const q=B.p5[i];return `<div class="rv"><span class="s">${esc(q[0].replace('___','<u>'+q[1].split('|')[0]+'</u>')).replace(/&lt;(\/?)u&gt;/g,'<$1u>')}</span><span class="exp">${esc(q[2])}｜${esc(q[3])}</span></div>`}).join('')}</div>`:''}
   </section>`;
 }
 function bar(label){return `<div class="qbar"><button class="navbtn" data-act="quit" aria-label="離開">×</button><span class="muted" style="font-size:13px">${label}</span><span class="timer" id="tm">${Q.limit?fmt(Q.limit-Math.floor((Date.now()-Q.t0)/1000)):fmt(Math.floor((Date.now()-Q.t0)/1000))}</span></div>`}
@@ -969,16 +990,25 @@ function renderP7(){
   <div class="passage">${esc(P.text)}</div>${qs}
   ${Q.done?`<div class="row2"><button class="btn" data-act="p7list">下一篇</button><button class="btn ghost" data-act="home">回練習首頁</button></div>`:'<button class="btn" data-act="finish">交卷</button>'}</section>`;
 }
+const SPK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const VMAP=Object.fromEntries(VOC.map(v=>[v.w,v.m]));
+function sayBtn(w,cls){return TTS.ok?`<button class="say${cls?' '+cls:''}" data-say="${esc(w)}" aria-label="播放 ${esc(w)} 的發音">${SPK}</button>`:''}
+function wordList(ws){return `<div class="slist">${ws.map(w=>`<div class="srow" style="grid-template-columns:1fr auto"><span><b lang="en" style="font-weight:600">${esc(w)}</b><br><small class="muted">${esc(VMAP[w]||'')}</small></span>${sayBtn(w)}</div>`).join('')}</div>`}
 function renderVocab(){
-  if(Q.cur>=Q.ids.length)return `<section><div class="result"><b>${Q.known}/${Q.ids.length}</b><span class="muted">這輪認識的字</span></div><div class="row2"><button class="btn" data-act="vocab">再一輪</button><button class="btn ghost" data-act="home">回練習首頁</button></div></section>`;
-  const v=VOC[Q.ids[Q.cur]];
-  return `<section><div class="qbar"><button class="navbtn" data-act="quit" aria-label="離開">×</button><span class="muted" style="font-size:13px">單字 ${Q.cur+1} / ${Q.ids.length}</span><span class="mono muted" style="font-size:13px">熟練度 ${VLV[v.w]||0}</span></div>
-  <div class="card" data-act="flip"><span class="w">${esc(v.w)}</span>${Q.flip?`<span class="m">${esc(v.m)}</span>`:'<span class="muted" style="font-size:13px">點一下看中文</span>'}</div>
+  if(Q.cur>=Q.ids.length)return `<section><div class="result"><b>${Q.known}/${Q.ids.length}</b><span class="muted">這輪認識的字</span></div>
+  ${Q.miss.length?`<div class="eyebrow">這輪不熟的字（已收進錯題本）</div>${wordList(Q.miss)}`:''}
+  <div class="row2"><button class="btn" data-act="${Q.retry&&WRONG.v.length?'vocabretry':'vocab'}">${Q.retry&&WRONG.v.length?'再練不熟的字':'再一輪'}</button><button class="btn ghost" data-act="home">回練習首頁</button></div></section>`;
+  const v=VOC[Q.ids[Q.cur]],bad=WRONG.v.includes(v.w);
+  return `<section><div class="qbar"><button class="navbtn" data-act="quit" aria-label="離開">×</button><span class="muted" style="font-size:13px">${Q.retry?'不熟的字':'單字'} ${Q.cur+1} / ${Q.ids.length}</span><span class="mono muted" style="font-size:13px">熟練度 ${VLV[v.w]||0}</span></div>
+  <div class="card" data-act="flip">${bad?'<span class="chip warnchip">上次不熟</span>':''}<span class="w" lang="en">${esc(v.w)}</span>${sayBtn(v.w,'big')}
+    ${Q.flip?`<span class="m">${esc(v.m)}</span>`:'<button class="btn ghost" data-act="flip" type="button">看中文</button>'}</div>
+  <div id="ttsMsg" aria-live="polite"></div>
+  ${TTS.ok?`<label class="chk" style="justify-content:center;font-size:13px;color:var(--muted)"><input type="checkbox" id="vauto"${VAUTO?' checked':''}> 換卡時自動發音</label>`:''}
   <div class="row2"><button class="btn ghost" data-vk="0">不熟</button><button class="btn" data-vk="1">認識</button></div></section>`;
 }
 /* ===== 聽力（用手機內建英文語音朗讀） ===== */
 const L2=B.l2||[],L3=B.l3||[];
-if(!WRONG.l2)WRONG.l2=[];if(!WRONG.l3)WRONG.l3=[];
+if(!WRONG.l2)WRONG.l2=[];if(!WRONG.l3)WRONG.l3=[];if(!WRONG.v)WRONG.v=[];
 let L2LOG=store.get('l2log',[]),L3DONE=store.get('l3done',{});
 const TTS={ok:!!window.speechSynthesis&&typeof window.SpeechSynthesisUtterance==='function',rate:+store.get('rate',0.95),voices:[],run:0,keep:null};
 function loadVoices(){if(!TTS.ok)return;try{TTS.voices=(speechSynthesis.getVoices()||[]).filter(x=>/^en[-_]/i.test(x.lang))}catch(e){}}
@@ -1136,8 +1166,8 @@ function pracClick(e){
     if(Q.cur<Q.items.length-1){render();setTimeout(()=>{if(Q&&!Q.done){Q.cur++;render()}},180)}else render();return true}
   const pk7=e.target.closest('[data-pick7]');if(pk7&&Q){const[n,k]=pk7.dataset.pick7.split('-').map(Number);Q.items[n].pick=k;
     const y=window.scrollY;render();window.scrollTo(0,y);return true}
-  const vk=e.target.closest('[data-vk]');if(vk&&Q){const v=VOC[Q.ids[Q.cur]].w,ok=vk.dataset.vk==='1';
-    VLV[v]=Math.max(0,Math.min(3,(VLV[v]||0)+(ok?1:-1)));if(ok)Q.known++;store.set('vocab',VLV);Q.cur++;Q.flip=false;render();return true}
+  const sy=e.target.closest('[data-say]');if(sy){speak([{t:sy.dataset.say,who:'W',gap:0}]);return true}
+  const vk=e.target.closest('[data-vk]');if(vk&&Q&&Q.kind==='vocab'){markWord(vk.dataset.vk==='1');return true}
   if(!a)return false;
   const act=a.dataset.act;
   if(act==='play'){playCur();return true}
@@ -1149,6 +1179,7 @@ function pracClick(e){
   else if(act==='p5')startP5();
   else if(act==='p5retry')startP5(true);
   else if(act==='vocab')startVocab();
+  else if(act==='vocabretry')startVocab(true);
   else if(act==='flip'){Q.flip=!Q.flip;render()}
   else if(act==='next'){Q.cur++;render()}
   else if(act==='prev'){Q.cur--;render()}
@@ -1184,7 +1215,7 @@ document.addEventListener('click',e=>{
   if(e.target.id==='bkExport'){exportBackup();return}
   if(e.target.id==='reset'){if(confirmReset){DONE={};store.set('done',DONE);confirmReset=false}else confirmReset=true;render()}
 });
-document.addEventListener('change',e=>{if(e.target.id==='bkFile'){importBackup(e.target.files[0]);e.target.value='';return}if(e.target.id==='uNoExam'){document.getElementById('uExamWrap').hidden=e.target.checked;if(!e.target.checked)document.getElementById('uExam').focus();return}if(e.target.id==='rate'){TTS.rate=+e.target.value;store.set('rate',TTS.rate);return}if(e.target.id==='pw'||e.target.id==='po'){S[e.target.id]=+e.target.value;store.set('settings',S);if(PUSHID)syncPush().then(ok=>pushMsg(ok?'已同步新的提醒時間。':'同步失敗，請稍後按「重新同步提醒」。'))}});
+document.addEventListener('change',e=>{if(e.target.id==='vauto'){VAUTO=e.target.checked;store.set('vauto',VAUTO);if(VAUTO)sayWord(true);return}if(e.target.id==='bkFile'){importBackup(e.target.files[0]);e.target.value='';return}if(e.target.id==='uNoExam'){document.getElementById('uExamWrap').hidden=e.target.checked;if(!e.target.checked)document.getElementById('uExam').focus();return}if(e.target.id==='rate'){TTS.rate=+e.target.value;store.set('rate',TTS.rate);return}if(e.target.id==='pw'||e.target.id==='po'){S[e.target.id]=+e.target.value;store.set('settings',S);if(PUSHID)syncPush().then(ok=>pushMsg(ok?'已同步新的提醒時間。':'同步失敗，請稍後按「重新同步提醒」。'))}});
 document.addEventListener('submit',e=>{
   e.preventDefault();
   if(e.target.id==='scForm'){

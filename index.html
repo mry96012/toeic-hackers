@@ -86,7 +86,7 @@ label.btn:focus-within,label.go:focus-within,.navbtn:focus-visible,button:focus-
 .tt{font-weight:500;min-width:0}
 .td{font-size:13px;color:var(--muted)}
 .tag{font-size:12px;font-weight:700;margin-right:6px}
-.tag.L{color:var(--L)}.tag.R{color:var(--R)}.tag.V{color:var(--V)}.tag.M{color:var(--M)}
+.tag.L{color:var(--L)}.tag.R{color:var(--R)}.tag.V{color:var(--V)}.tag.M,.tag.X{color:var(--M)}
 .min{font-family:var(--mono);font-size:13px;color:var(--muted);white-space:nowrap}
 .note{font-size:13px;color:var(--muted);padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--bg-1);border-radius:0 var(--r-md) var(--r-md) 0}
 .progress{height:6px;border-radius:3px;background:var(--bg-3);overflow:hidden}
@@ -97,10 +97,10 @@ label.btn:focus-within,label.go:focus-within,.navbtn:focus-visible,button:focus-
 .wk h2{font-size:16px;display:flex;justify-content:space-between;gap:8px}
 .wk p{margin:0;font-size:13px;color:var(--muted)}
 .rows{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
-.row{display:grid;grid-template-columns:54px 1fr auto;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;font:inherit;color:inherit}
+.row{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left;font:inherit;color:inherit}
 .row:first-child{border-top:0}
 .row .d{font-family:var(--mono);font-size:13px}
-.row .d small{display:block;font-family:var(--sans);color:var(--muted);font-size:11px}
+.row .d small{display:block;font-family:var(--sans);color:var(--muted);font-size:11px;white-space:nowrap}
 .row .s{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row.today{background:var(--bg-2);box-shadow:inset 3px 0 0 var(--accent)}
 .row .st{font-family:var(--mono);font-size:12px;color:var(--muted)}
@@ -171,10 +171,16 @@ nav button.on svg{filter:drop-shadow(0 0 6px var(--accent-glow))}
 .card{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-card);padding:24px;cursor:pointer;text-align:center}
 .card .w{font-size:30px;font-weight:600;font-family:Georgia,serif;word-break:break-word}
 .card .m{font-size:18px}
+.card-plain{display:flex;flex-direction:column;gap:12px;background:var(--bg-2);border:1px solid var(--accent);border-radius:var(--r-md);padding:16px;box-shadow:0 0 0 1px var(--accent),0 0 32px var(--accent-soft)}
 .say{position:relative;display:inline-grid;place-items:center;width:44px;height:44px;flex:none;border-radius:50%;border:1px solid var(--line-strong);background:var(--bg-1);color:var(--ink);cursor:pointer;padding:0}
 .say svg{width:20px;height:20px;fill:currentColor}
 .say.big{width:52px;height:52px;border-color:var(--accent);color:var(--accent);box-shadow:0 0 16px var(--accent-soft)}
 .say.big svg{width:24px;height:24px}
+.ex{margin:4px 0 0;display:flex;gap:10px;align-items:center;text-align:left;font-family:Georgia,"Noto Serif TC",serif;font-size:15px;line-height:1.55;color:var(--muted)}
+.ex b{color:var(--ink);font-weight:600}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--pill)}
+.seg button{font:inherit;font-size:14px;min-height:40px;border:0;border-radius:var(--pill);background:none;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--bg-3);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-strong)}
 .warnchip{background:rgba(255,107,139,.12);border-color:rgba(255,107,139,.4)}
 .warnchip::before{background:var(--M);box-shadow:0 0 8px var(--M)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -208,7 +214,7 @@ nav button.on svg{filter:drop-shadow(0 0 6px var(--accent-glow))}
     <h1 class="sr">多益備考計畫</h1>
     <div>
       <div class="eyebrow"><span id="who"></span>距離 <span id="examLbl"></span> 多益</div>
-      <div class="count"><b id="cd">0</b><span>天</span></div>
+      <div class="count"><b id="cd">0</b><span id="cdU">天</span></div>
     </div>
     <div class="goal">目標 <span class="mono" id="goalT">800</span><br>最近 <span class="mono" id="latest">675</span><br><span id="gap"></span></div>
   </header>
@@ -601,6 +607,8 @@ const PH=[
  {n:'考前收斂',g:'不做新題，只看錯題本、模考書的高頻單字和文法筆記，調整作息。'}
 ];
 const isOff=d=>S.off.includes(pd(d).getDay());
+// 已固定的過去日子，以當時排的為準（休假日或上班日）
+const offEff=d=>{const F=globalThis.HKFROZEN;return F&&F[d]?F[d].type==='休假日':isOff(d)};
 const nWeeks=()=>Math.floor(Math.max(0,diff(S.start,S.exam))/7)+1;
 const weekOf=d=>Math.min(Math.floor(diff(S.start,d)/7),nWeeks()-1);
 function phaseOf(d){
@@ -612,11 +620,11 @@ function phaseOf(d){
 }
 function offRank(d){ // 這是本週區塊中的第幾個休假日（0 起算）
   const bs=add(pd(S.start),weekOf(d)*7);let r=0;
-  for(let i=0;i<7;i++){const x=ymd(add(bs,i));if(x===d)return r;if(isOff(x))r++}
+  for(let i=0;i<7;i++){const x=ymd(add(bs,i));if(x===d)return r;if(offEff(x))r++}
   return r;
 }
 function workIdx(d){ // 計畫開始到這天之前，有幾個平日（不含最後一週）
-  let k=0;for(let i=0,s=pd(S.start);i<diff(S.start,d);i++){const x=ymd(add(s,i));if(!isOff(x)&&diff(x,S.exam)>6)k++}
+  let k=0;for(let i=0,s=pd(S.start);i<diff(S.start,d);i++){const x=ymd(add(s,i));if(!offEff(x)&&diff(x,S.exam)>6)k++}
   return k;
 }
 const mockName=w=>w<MOCKS.length?MOCKS[w]:'重做'+MOCKS[(w-MOCKS.length)%MOCKS.length];
@@ -630,7 +638,7 @@ function readTask(d){
 
 function tasksFor(d){
   const toExam=diff(d,S.exam);
-  if(toExam===0)return{type:'考試日',list:[T('M','考試',0,'帶身分證正本與准考證，提早 30 分鐘到考場。閱讀照練習的分配：Part 5 九分鐘、Part 6 八分鐘、其餘全給 Part 7。',true)]};
+  if(toExam===0)return{type:'考試日',list:[T('X','考試',0,'帶身分證正本與准考證，提早 30 分鐘到考場。閱讀照練習的分配：Part 5 九分鐘、Part 6 八分鐘、其餘全給 Part 7。',true)]};
   if(toExam<0||diff(S.start,d)<0)return null;
   const off=isOff(d),p=phaseOf(d),w=weekOf(d);let L=[];
   if(toExam===1){
@@ -666,13 +674,24 @@ function tasksFor(d){
 }
 
 let tab=FIRST?'setup':'today',sel=null;
+/* 已經過去的日子固定保留當時的任務，改設定只重排今天以後（今天有打勾也固定） */
+let FROZEN=store.get('frozen',{});globalThis.HKFROZEN=FROZEN;
+function dayPlan(d){const f=FROZEN[d];if(f)return f;const t=tasksFor(d);return t&&Object.assign({w:weekOf(d),p:phaseOf(d)},t)}
+function freezePast(base){ // base：用哪一份設定算出舊任務（預設是已存檔的設定）
+  const cur=S;S=base||Object.assign({},DEF,store.get('settings',{}));let n=0;
+  try{if(S.start&&S.exam)for(let i=0,s0=pd(S.start);;i++){const x=ymd(add(s0,i));if(diff(x,todayStr)<0||diff(x,S.exam)<0)break;
+      if(x===todayStr&&!(DONE[x]||[]).length)break;
+      if(!FROZEN[x]){const t=tasksFor(x);if(t){FROZEN[x]={type:t.type,list:t.list,w:weekOf(x),p:phaseOf(x)};n++}}}}
+  finally{S=cur}
+  if(n)store.set('frozen',FROZEN);
+}
 function defaultSel(){
   if(diff(S.start,todayStr)<0)return S.start;
   if(diff(todayStr,S.exam)<0)return S.exam;
   return todayStr;
 }
 const doneOf=d=>DONE[d]||[];
-function statusOf(d){const t=tasksFor(d);if(!t)return 0;const n=t.list.length,k=doneOf(d).length;return k===0?0:k>=n?2:1}
+function statusOf(d){const t=dayPlan(d);if(!t)return 0;const n=t.list.length,k=doneOf(d).length;return k===0?0:k>=n?2:1}
 
 function header(){
   const e=pd(S.exam);
@@ -680,36 +699,56 @@ function header(){
   document.getElementById('who').textContent=S.name?S.name+'・':'';
   document.querySelector('header.top').hidden=tab==='setup';document.querySelector('nav').hidden=tab==='setup';
   document.getElementById('cd').textContent=Math.max(0,diff(todayStr,S.exam));
+  document.getElementById('cdU').textContent=examOver()?'天・已考完':'天';
   const last=SCORES.slice().sort((a,b)=>a.date<b.date?-1:1).pop();
   document.getElementById('latest').textContent=last?(last.L+last.R):'—';
   document.getElementById('goalT').textContent=S.target;
   const g=last?S.target-(last.L+last.R):0;document.getElementById('gap').textContent=last?(g>0?'還差 '+g+' 分':'已達標'):'';
 }
 
+function backupNudge(){
+  const last=store.get('lastBackup',''),has=Object.keys(DONE).some(k=>(DONE[k]||[]).length)||SCORES.length>1;
+  if(!has||diff(S.start,todayStr)<7)return '';
+  const days=last?diff(last,todayStr):null;if(days!==null&&days<7)return '';
+  return `<div class="note">${last?'已經 '+days+' 天沒備份了。':'還沒備份過紀錄。'}刪掉 APP 或換手機時，沒備份的紀錄會不見。<button class="go" data-act2="toBackup" style="margin-left:6px">去備份</button></div>`;
+}
+const examOver=()=>diff(S.exam,todayStr)>0;
+function renderAfterExam(){
+  const got=SCORES.some(z=>z.official&&z.date===S.exam);
+  return `<div class="card-plain"><h2 style="font-size:18px">考完了，辛苦了！</h2>
+  ${got?'<p class="muted" style="margin:0">正式成績已記錄。要繼續準備的話，選一個下一步：</p>':`<p class="muted" style="margin:0">成績出來後填在這裡，會記到「成績」頁。</p>
+  <form class="sc" id="offForm" novalidate style="padding:0;border:0;background:none">
+    <label>聽力（5–495）<input id="oL" type="number" inputmode="numeric" min="5" max="495" step="5" aria-describedby="oErr"></label>
+    <label>閱讀（5–495）<input id="oR" type="number" inputmode="numeric" min="5" max="495" step="5" aria-describedby="oErr"></label>
+    <p class="err" id="oErr" aria-live="polite"></p>
+    <button class="btn full" type="submit">記下正式成績</button></form>`}
+  <div class="row2"><button class="btn ghost" data-act2="nextExam">設定下次考試日</button><button class="btn ghost" data-act2="newRound">再排 12 週（暫定）</button></div></div>`;
+}
 function renderToday(){
-  const d=sel||defaultSel(),t=tasksFor(d),dd=pd(d);
+  const d=sel||defaultSel(),t=dayPlan(d),dd=pd(d);
   const bs=add(dd,-dd.getDay());
   let wk='';
-  for(let i=0;i<7;i++){const x=ymd(add(bs,i)),st=statusOf(x),inR=tasksFor(x);
+  for(let i=0;i<7;i++){const x=ymd(add(bs,i)),st=statusOf(x),inR=dayPlan(x);
     wk+=`<button class="wd${x===d?' sel':''}${isOff(x)?' off':''}${x===S.exam?' exam':''}" data-d="${x}" aria-label="${md(x)}"><small>${WD[i]}</small><span class="n">${add(bs,i).getDate()}</span><span class="dot ${st===2?'full':st===1?'half':''}" style="${inR?'':'visibility:hidden'}"></span></button>`}
   let body='';
   if(!t){body=`<div class="note">這天不在衝刺計畫範圍內（${md(S.start)} 到 ${md(S.exam)}）。</div>`}
   else{
     const dn=doneOf(d),tot=t.list.reduce((a,x)=>a+x.m,0),letters='ABCD';
-    const p=phaseOf(d);
-    body=`<span class="chip">第 ${weekOf(d)+1} 週・${PH[p].n}</span>
+    const p=t.p;
+    body=`<span class="chip">第 ${t.w+1} 週・${PH[p].n}</span>
     <div class="meta"><span>${t.type}${d===todayStr?'・今天':''}</span><span class="mono">${tot?Math.floor(tot/60)+' 小時 '+(tot%60)+' 分':''}</span></div>
     <div class="progress" role="progressbar" aria-label="今日完成度" aria-valuemin="0" aria-valuemax="${t.list.length}" aria-valuenow="${dn.length}"><i style="width:${t.list.length?dn.length/t.list.length*100:0}%"></i></div>
     <ul class="tasks" aria-label="今天的任務">${t.list.map((x,i)=>`<li class="task${dn.includes(i)?' done':''}" data-i="${i}">
       <button class="tbtn" role="checkbox" aria-checked="${dn.includes(i)}">
       <span class="bub" aria-hidden="true">${letters[i%4]}</span>
-      <span class="tbody"><span class="tt"><span class="tag ${x.tag}">${{L:'聽力',R:'閱讀',V:'單字',M:'考試'}[x.tag]}</span>${x.t}</span><span class="td">${x.d}</span></span>
+      <span class="tbody"><span class="tt"><span class="tag ${x.tag}">${{L:'聽力',R:'閱讀',V:'單字',M:'模考',X:'考試'}[x.tag]||''}</span>${x.t}</span><span class="td">${x.d}</span></span>
       <span class="min">${x.m?x.m+'<span class="sr"> 分鐘</span><span aria-hidden="true">′</span>':''}</span></button>${goFor(x.t)}</li>`).join('')}</ul>
     <div class="note">${PH[p].g}</div>`;
   }
   return `<section><div class="daybar"><button class="navbtn" data-step="-1" aria-label="前一天">‹</button>
     <h2>${dd.getMonth()+1} 月 ${dd.getDate()} 日（${WD[dd.getDay()]}）</h2>
     <button class="navbtn" data-step="1" aria-label="後一天">›</button></div>
+    ${examOver()&&!sel?renderAfterExam():''}${backupNudge()}
     <div class="week">${wk}</div>${body}</section>`;
 }
 
@@ -718,9 +757,9 @@ function renderPlan(){
   for(let i=0;i<=days;i++){const x=ymd(add(pd(S.start),i)),w=Math.min(Math.floor(i/7),nWeeks()-1);(groups[w]=groups[w]||[]).push(x)}
   let h=`<section><div class="note">這份計畫用 4 本書：${BK.a}和${BK.b}共 12 回全真模考，每週休假日做一回；${BK.r} 10 回拆成平日的 Part 5 到 7 練習；${BK.g}在前幾週讀多益常考的章節。${S.noExam?'目前還沒報名，先暫定 '+md(S.exam)+' 考試，報名後到「設定」改成正式日期，計畫會自動重排。':''}</div>`;
   Object.keys(groups).forEach(w=>{
-    const ds=groups[w],p=phaseOf(ds[0]),k=ds.filter(x=>statusOf(x)===2).length;
+    const ds=groups[w],p=dayPlan(ds[0]).p,k=ds.filter(x=>statusOf(x)===2).length;
     h+=`<div class="wk"><h2><span>第 ${+w+1} 週・${PH[p].n}</span><span class="mono muted" style="font-size:13px">${k}/${ds.length}</span></h2><p>${md(ds[0])}–${md(ds[ds.length-1])}　${PH[p].g}</p>
-    <div class="rows">${ds.map(x=>{const t=tasksFor(x),st=statusOf(x),dn=doneOf(x).length;
+    <div class="rows">${ds.map(x=>{const t=dayPlan(x),st=statusOf(x),dn=doneOf(x).length;
       return `<button class="row${x===todayStr?' today':''}" data-d="${x}"><span class="d">${md(x)}<small>${WD[pd(x).getDay()]}・${t?t.type:''}</small></span><span class="s">${t?t.list.map(y=>y.t).join('・'):''}</span><span class="st mono${st===2?' ok':''}">${t?dn+'/'+t.list.length:''}</span></button>`}).join('')}</div></div>`});
   return h+'</section>';
 }
@@ -850,12 +889,13 @@ function renderSet(){
 
 /* ===== 練習 ===== */
 const B=window.BANK||{p5:[],p7:[],vocab:''};
+const VEX={"accommodate":"The hotel can accommodate up to 300 guests for the conference.","agenda":"The budget review is the first item on today's agenda.","allocate":"Management will allocate extra funds to the marketing team.","amendment":"The lawyer suggested an amendment to the rental contract.","anticipate":"We anticipate a sharp rise in orders before the holidays.","applicant":"Each applicant must submit two letters of reference.","appointment":"Please call the clinic to reschedule your appointment.","approximately":"The renovation will take approximately three weeks.","assess":"An inspector will assess the damage to the warehouse.","asset":"Our experienced staff is the company's greatest asset.","attendee":"Every attendee will receive a name badge at the entrance.","audit":"The annual audit found no errors in the accounts.","authorize":"Only the manager can authorize refunds over $500.","available":"The meeting room is available after 3 p.m.","beverage":"Complimentary beverages will be served during the break.","brochure":"Our new brochure lists all of the tour packages.","budget":"The project was completed under budget.","candidate":"The committee interviewed five candidates for the position.","capacity":"The new factory will double our production capacity.","client":"Ms. Park is meeting a client in the lobby.","colleague":"I'll ask a colleague to cover my shift on Friday.","commute":"Many employees commute to the office by train.","compensation":"The position offers competitive compensation and benefits.","competitive":"We offer competitive prices on all office furniture.","comply":"All visitors must comply with the safety regulations.","confidential":"Salary information is strictly confidential.","confirm":"Please confirm your reservation by Thursday.","consecutive":"Sales have increased for three consecutive quarters.","consult":"You should consult the manual before using the machine.","contract":"Both parties signed the contract on Monday.","coordinate":"Ms. Lee will coordinate the training sessions.","courier":"The documents were delivered by courier this morning.","credentials":"Applicants must present their credentials at the interview.","deadline":"The deadline for submitting proposals is May 31.","defective":"Customers may return defective items within 30 days.","delegate":"A good manager knows how to delegate tasks.","deposit":"A 20 percent deposit is required to book the venue.","designate":"Smoking is permitted only in designated areas.","dispatch":"Your order will be dispatched within 24 hours.","distribute":"Please distribute the handouts before the seminar begins.","draft":"I've attached a draft of the press release for your review.","eligible":"Full-time employees are eligible for the bonus program.","enclose":"I have enclosed a copy of my résumé.","endorse":"The board voted to endorse the new policy.","enhance":"The software update will enhance security.","enroll":"Staff can enroll in the course through the company website.","estimate":"The contractor sent us an estimate for the repairs.","evaluate":"Supervisors evaluate each employee's performance every year.","exceed":"Sales this month exceeded our expectations.","expand":"The company plans to expand into Southeast Asia.","expenditure":"The report shows a decrease in travel expenditure.","expertise":"We need someone with expertise in data analysis.","expire":"Your membership will expire at the end of the month.","facilitate":"The new system will facilitate communication between departments.","feasible":"The engineers believe the plan is technically feasible.","fiscal":"Profits rose by 8 percent in the last fiscal year.","forward":"Could you forward me the client's e-mail?","fragile":"Please handle this package with care; it is fragile.","headquarters":"The company's headquarters are located in Singapore.","implement":"The firm will implement the new policy next month.","incentive":"Employees receive a cash incentive for meeting their targets.","inquiry":"Thank you for your inquiry about our services.","installment":"You can pay for the laptop in six monthly installments.","inventory":"The store closes early on Sunday to take inventory.","invoice":"The invoice must be paid within 30 days.","itinerary":"Your travel itinerary has been sent to your e-mail.","lease":"The office lease expires next spring.","liability":"The company accepts no liability for lost items.","logistics":"Our logistics team manages all international shipments.","maintenance":"The elevator will be closed for maintenance on Saturday.","mandatory":"Attendance at the safety training is mandatory.","merchandise":"All merchandise is 30 percent off this weekend.","merger":"The merger will create the largest airline in the region.","negotiate":"We are negotiating a new contract with the supplier.","notify":"Please notify the front desk if you plan to check out late.","objective":"Our main objective this year is to reduce costs.","obligation":"There is no obligation to purchase after the free trial.","occupancy":"Hotel occupancy is highest during the summer.","outstanding":"Please pay the outstanding balance by Friday.","overdue":"The library charges a fee for overdue books.","oversee":"Mr. Tan will oversee the construction project.","patron":"Patrons are asked to turn off their phones during the show.","payroll":"Payroll will be processed on the 25th of each month.","periodical":"The library subscribes to over 200 periodicals.","personnel":"Only authorized personnel may enter this area.","preliminary":"The preliminary results look promising.","premises":"Parking is available on the premises.","procedure":"Follow the standard procedure for reporting accidents.","proceeds":"All proceeds from the concert will go to charity.","procure":"The purchasing department procures office supplies.","projection":"Sales projections for next year are optimistic.","promote":"She was promoted to regional manager last month.","proposal":"The client approved our proposal for the new logo.","prospective":"We are hosting a dinner for prospective clients.","quarterly":"The quarterly report will be released next week.","quota":"Each sales representative has a monthly quota.","quote":"Please send us a quote for 500 printed catalogs.","reimburse":"The company will reimburse you for travel expenses.","relocate":"The firm decided to relocate its office downtown.","remit":"Please remit payment to the address below.","renovation":"The lobby is closed due to renovation.","representative":"A customer service representative will call you back.","requirement":"A driver's license is a requirement for this job.","reservation":"I'd like to make a reservation for four people.","retail":"The retail price of the printer is $199.","revenue":"Online sales now account for half of our revenue.","revise":"Please revise the schedule and send it back to me.","shipment":"The shipment was delayed because of bad weather.","stakeholder":"All stakeholders were invited to the planning meeting.","subsidiary":"The bank opened a subsidiary in Hong Kong.","subscription":"You can cancel your subscription at any time.","supervisor":"Report any problems to your supervisor immediately.","supplement":"The manual comes with a supplement on safety rules.","surplus":"The city reported a budget surplus this year.","tentative":"The meeting is tentatively scheduled for Tuesday.","terminate":"Either party may terminate the agreement with 30 days' notice.","transaction":"A receipt is printed after every transaction.","tuition":"The company pays tuition for job-related courses.","turnover":"High staff turnover has increased training costs.","unanimous":"The board reached a unanimous decision.","upcoming":"Don't forget to register for the upcoming workshop.","utility":"Rent includes all utilities except Internet.","vacancy":"We have a vacancy in the accounting department.","vendor":"We are looking for a new software vendor.","venue":"The venue for the awards ceremony has changed.","waive":"The bank will waive the annual fee for new customers.","warranty":"The washing machine comes with a two-year warranty.","withdraw":"You can withdraw cash at any of our branches.","workforce":"Women now make up half of the company's workforce.","yield":"The new strategy is expected to yield better results.","adjacent":"The parking lot is adjacent to the main building.","complimentary":"Guests receive a complimentary breakfast.","consolidate":"The two branches will consolidate into one office.","discrepancy":"There is a discrepancy between the invoice and the receipt.","durable":"These backpacks are made of durable material.","expedite":"We paid extra to expedite the delivery.","interim":"Mr. Wong will serve as interim director until June.","lucrative":"The company won a lucrative government contract.","mediate":"An outside expert was hired to mediate the dispute.","outsource":"Many firms outsource their customer service.","pending":"Your application is pending approval.","reconcile":"The accountant reconciled the bank statements.","solicit":"We are soliciting feedback from our customers.","streamline":"The new software will streamline the ordering process.","surpass":"This year's profits surpassed last year's record.","tenant":"Tenants must give two months' notice before moving out.","verify":"Please verify your e-mail address to activate your account."};
 const VOC=B.vocab.split(';').map(s=>{const[w,m]=s.split('|');return{w,m}});
 let WRONG=store.get('wrong',{p5:[],p7:[]});
 let P5LOG=store.get('p5log',[]);
 let P7DONE=store.get('p7done',{});
 let VLV=store.get('vocab',{});
-let VAUTO=store.get('vauto',true);
+let VAUTO=store.get('vauto',true),VDIR=store.get('vdir','en');
 let Q=null,timerId=null;
 const LET='ABCD';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -864,9 +904,9 @@ const mkOpts=s=>{const o=s.split('|');return shuf(o.map((t,i)=>({t,ok:i===0})))}
 const fmt=s=>{const a=Math.abs(s);return (s<0?'+':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0')};
 function goFor(t){
   if(/Part 2/.test(t))return '<button class="go" data-go="l2">在 APP 裡練習</button>';
-  if(/Part 3\/4|聽力|跟讀/.test(t))return '<button class="go" data-go="l3">在 APP 裡練習</button>';
+  if(/Part 3\/4|聽力|跟讀/.test(t))return `<button class="go" data-go="l3">${Object.keys(L3DONE).length>=L3.length?'在 APP 裡重做複習':'在 APP 裡練習'}</button>`;
   if(/Part 5/.test(t))return '<button class="go" data-go="p5">在 APP 裡練習</button>';
-  if(/Part 7/.test(t))return '<button class="go" data-go="p7">在 APP 裡練習</button>';
+  if(/Part 7/.test(t))return `<button class="go" data-go="p7">${Object.keys(P7DONE).length>=B.p7.length?'在 APP 裡重做複習':'在 APP 裡練習'}</button>`;
   if(t==='單字')return '<button class="go" data-go="vocab">翻單字卡</button>';
   return '';
 }
@@ -903,7 +943,7 @@ function startVocab(retry){
   Q={kind:'vocab',ids,cur:0,flip:false,known:0,miss:[],retry:!!retry,done:false};
   tab='prac';render();sayWord();
 }
-function sayWord(force){if(!Q||Q.kind!=='vocab'||Q.cur>=Q.ids.length||!(force||VAUTO))return;speak([{t:VOC[Q.ids[Q.cur]].w,who:'W',gap:0}])}
+function sayWord(force){if(!Q||Q.kind!=='vocab'||Q.cur>=Q.ids.length||!(force||VAUTO))return;if(VDIR==='zh'&&!Q.flip&&!force)return;speak([{t:VOC[Q.ids[Q.cur]].w,who:'W',gap:0}])}
 function markWord(ok){
   const w=VOC[Q.ids[Q.cur]].w,has=WRONG.v.includes(w);
   VLV[w]=Math.max(0,Math.min(3,(VLV[w]||0)+(ok?1:-1)));
@@ -918,7 +958,7 @@ function finish(){
   if(Q.kind==='p5'){
     Q.items.forEach(it=>{const ok=it.pick>=0&&it.opts[it.pick].ok;if(ok)c++;
       const has=WRONG.p5.includes(it.i);
-      if(!ok&&!has)WRONG.p5.push(it.i);if(ok&&has&&Q.retry)WRONG.p5=WRONG.p5.filter(x=>x!==it.i)});
+      if(!ok&&!has)WRONG.p5.push(it.i);if(ok&&has)WRONG.p5=WRONG.p5.filter(x=>x!==it.i)});
     if(!Q.retry){P5LOG.push({d:todayStr,c,n:Q.items.length,s:Q.sec});store.set('p5log',P5LOG)}
   }else{
     Q.items.forEach(it=>{const key=Q.pi+'-'+it.k,ok=it.pick>=0&&it.opts[it.pick].ok;if(ok)c++;
@@ -948,6 +988,7 @@ function renderPracHome(){
 }
 function renderP7List(){
   return `<section><div class="daybar"><button class="navbtn" data-act="home" aria-label="返回">‹</button><h2>Part 7 閱讀</h2><span style="width:44px" aria-hidden="true"></span></div>
+  ${Object.keys(P7DONE).length>=B.p7.length?'<div class="note">APP 裡的 '+B.p7.length+' 篇都做過了。之後的 Part 7 練習請用《閱讀題庫》和模考書的閱讀，這裡的文章可以重做，練到每題 1 分鐘內。</div>':''}
   <div class="rows">${B.p7.map((p,i)=>{const d=P7DONE[i];return `<button class="row" data-p7="${i}" style="grid-template-columns:1fr auto"><span class="s"><b style="font-weight:500">${esc(p.title)}</b><br><small class="muted">${p.t}・${p.q.length} 題・限時 ${p.q.length} 分鐘</small></span><span class="st mono${d&&d.c===d.n?' ok':''}">${d?d.c+'/'+d.n:'未做'}</span></button>`}).join('')}</div></section>`;
 }
 function renderWrong(){
@@ -1000,8 +1041,10 @@ function renderVocab(){
   <div class="row2"><button class="btn" data-act="${Q.retry&&WRONG.v.length?'vocabretry':'vocab'}">${Q.retry&&WRONG.v.length?'再練不熟的字':'再一輪'}</button><button class="btn ghost" data-act="home">回練習首頁</button></div></section>`;
   const v=VOC[Q.ids[Q.cur]],bad=WRONG.v.includes(v.w);
   return `<section><div class="qbar"><button class="navbtn" data-act="quit" aria-label="離開">×</button><span class="muted" style="font-size:13px">${Q.retry?'不熟的字':'單字'} ${Q.cur+1} / ${Q.ids.length}</span><span class="mono muted" style="font-size:13px">熟練度 ${VLV[v.w]||0}</span></div>
-  <div class="card" data-act="flip">${bad?'<span class="chip warnchip">上次不熟</span>':''}<span class="w" lang="en">${esc(v.w)}</span>${sayBtn(v.w,'big')}
-    ${Q.flip?`<span class="m">${esc(v.m)}</span>`:'<button class="btn ghost" data-act="flip" type="button">看中文</button>'}</div>
+  <div class="seg" role="group" aria-label="出題方向"><button type="button" data-vdir="en" aria-pressed="${VDIR==='en'}">英 → 中</button><button type="button" data-vdir="zh" aria-pressed="${VDIR==='zh'}">中 → 英</button></div>
+  <div class="card" data-act="flip">${bad?'<span class="chip warnchip">上次不熟</span>':''}
+    ${VDIR==='zh'&&!Q.flip?`<span class="m" style="font-size:24px;font-weight:600">${esc(v.m)}</span><span class="muted" style="font-size:13px">想一想英文怎麼說、怎麼拼</span>`:`<span class="w" lang="en">${esc(v.w)}</span>${sayBtn(v.w,'big')}`}
+    ${Q.flip?`${VDIR==='en'?`<span class="m">${esc(v.m)}</span>`:''}${VEX[v.w]?`<p class="ex" lang="en">${esc(VEX[v.w]).replace(new RegExp('\\b('+v.w.slice(0,Math.max(4,v.w.length-2))+'\\w*)','i'),'<b>$1</b>')}${sayBtn(VEX[v.w])}</p>`:''}`:`<button class="btn ghost" data-act="flip" type="button">${VDIR==='zh'?'看英文':'看中文和例句'}</button>`}</div>
   <div id="ttsMsg" aria-live="polite"></div>
   ${TTS.ok?`<label class="chk" style="justify-content:center;font-size:13px;color:var(--muted)"><input type="checkbox" id="vauto"${VAUTO?' checked':''}> 換卡時自動發音</label>`:''}
   <div class="row2"><button class="btn ghost" data-vk="0">不熟</button><button class="btn" data-vk="1">認識</button></div></section>`;
@@ -1144,7 +1187,8 @@ function renderL3(){
     <div class="row2"><button class="btn" data-act="l3list">下一組</button><button class="btn ghost" data-act="home">回練習首頁</button></div>`:'<button class="btn" data-act="finish">交卷</button>'}</section>`;
 }
 function renderL3List(){
-  return `<section><div class="daybar"><button class="navbtn" data-act="home" aria-label="返回練習首頁">‹</button><h2>Part 3/4 聽力</h2><span style="width:44px"></span></div>
+  return `<section><div class="daybar"><button class="navbtn" data-act="home" aria-label="返回練習首頁">‹</button><h2>Part 3/4 聽力</h2><span style="width:44px" aria-hidden="true"></span></div>
+  ${Object.keys(L3DONE).length>=L3.length?'<div class="note">APP 裡的 '+L3.length+' 組都做過了。之後的 Part 3/4 請用模考書附的分 Part 音檔，照「先看題目、再聽」的方法練；這裡的題目可以重做複習。</div>':''}
   <div class="rows">${L3.map((s,i)=>{const d=L3DONE[i];return `<button class="row" data-l3="${i}" style="grid-template-columns:1fr auto"><span class="s"><b style="font-weight:500">${esc(s.title)}</b><br><small class="muted">${s.t}・${s.t==='Part 3'?'對話':'短講'}・${s.q.length} 題</small></span><span class="st mono${d&&d.c===d.n?' ok':''}">${d?d.c+'/'+d.n:'未做'}</span></button>`}).join('')}</div></section>`;
 }
 
@@ -1166,6 +1210,7 @@ function pracClick(e){
     if(Q.cur<Q.items.length-1){render();setTimeout(()=>{if(Q&&!Q.done){Q.cur++;render()}},180)}else render();return true}
   const pk7=e.target.closest('[data-pick7]');if(pk7&&Q){const[n,k]=pk7.dataset.pick7.split('-').map(Number);Q.items[n].pick=k;
     const y=window.scrollY;render();window.scrollTo(0,y);return true}
+  const vd=e.target.closest('[data-vdir]');if(vd){VDIR=vd.dataset.vdir;store.set('vdir',VDIR);if(Q&&Q.kind==='vocab'){Q.flip=false;render();sayWord()}return true}
   const sy=e.target.closest('[data-say]');if(sy){speak([{t:sy.dataset.say,who:'W',gap:0}]);return true}
   const vk=e.target.closest('[data-vk]');if(vk&&Q&&Q.kind==='vocab'){markWord(vk.dataset.vk==='1');return true}
   if(!a)return false;
@@ -1180,7 +1225,7 @@ function pracClick(e){
   else if(act==='p5retry')startP5(true);
   else if(act==='vocab')startVocab();
   else if(act==='vocabretry')startVocab(true);
-  else if(act==='flip'){Q.flip=!Q.flip;render()}
+  else if(act==='flip'){Q.flip=!Q.flip;render();if(Q.flip&&VDIR==='zh')sayWord()}
   else if(act==='next'){Q.cur++;render()}
   else if(act==='prev'){Q.cur--;render()}
   else if(act==='finish')finish();
@@ -1211,6 +1256,10 @@ document.addEventListener('click',e=>{
   const dl=e.target.closest('[data-del]');if(dl){SCORES=SCORES.filter(s=>s.id!=dl.dataset.del);askDel=null;store.set('scores',SCORES);render();return}
   if(askDel!==null&&!e.target.closest('.del')){askDel=null;if(tab==='score'){render()}}
   const of=e.target.closest('[data-off]');if(of){const i=+of.dataset.off;S.off=S.off.includes(i)?S.off.filter(x=>x!==i):S.off.concat(i);of.classList.toggle('on');of.setAttribute('aria-pressed',S.off.includes(i));return}
+  const a2=e.target.closest('[data-act2]');if(a2){const k=a2.dataset.act2;
+    if(k==='nextExam'){tab='set';render();const x=document.getElementById('sExam');if(x)x.focus();return}
+    if(k==='newRound'){freezePast(S);S.start=todayStr;S.exam=ymd(add(pd(todayStr),83));S.noExam=true;store.set('settings',S);sel=null;render();syncPush();window.scrollTo(0,0);return}
+    if(k==='toBackup'){tab='set';render();const b=document.getElementById('bkExport');if(b){b.scrollIntoView({block:'center'});b.focus()}return}}
   if(e.target.id==='pushOn'){enablePush();return}
   if(e.target.id==='bkExport'){exportBackup();return}
   if(e.target.id==='reset'){if(confirmReset){DONE={};store.set('done',DONE);confirmReset=false}else confirmReset=true;render()}
@@ -1225,6 +1274,10 @@ document.addEventListener('submit',e=>{
     if(!okL||!okR){document.getElementById('scErr').textContent=(!okL&&!okR?'聽力和閱讀':!okL?'聽力':'閱讀')+'分數要在 5 到 495 之間。請先用書上的換算表換算再填。';(okL?document.getElementById('scR'):document.getElementById('scL')).focus();return}
     SCORES.push({id:Date.now(),date:document.getElementById('scDate').value||todayStr,label:document.getElementById('scLabel').value||'模考',L,R});
     store.set('scores',SCORES);render();
+  }else if(e.target.id==='offForm'){
+    const L=+document.getElementById('oL').value,R=+document.getElementById('oR').value,ok=L>=5&&L<=495&&R>=5&&R<=495;
+    if(!ok){document.getElementById('oErr').textContent='聽力和閱讀都要填 5 到 495 之間的分數。';document.getElementById(L>=5&&L<=495?'oR':'oL').focus();return}
+    SCORES.push({id:Date.now(),date:S.exam,label:'正式成績',L,R,official:true});store.set('scores',SCORES);render();
   }else if(e.target.id==='setupForm'){
     const g=id=>document.getElementById(id),err=t=>{g('uErr').textContent=t};
     const no=g('uNoExam').checked,ex=g('uExam').value,Lv=g('uL').value,Rv=g('uR').value,L=+Lv,R=+Rv;
@@ -1235,6 +1288,7 @@ document.addEventListener('submit',e=>{
     if(Lv&&Rv){SCORES=[{id:Date.now(),date:todayStr,label:'最近一次成績',L,R}];store.set('scores',SCORES)}
     store.set('settings',S);sel=null;tab='today';render();window.scrollTo(0,0);
   }else if(e.target.id==='setForm'){
+    freezePast();
     const ex=document.getElementById('sExam').value;if(ex&&ex!==S.exam){S.exam=ex;S.noExam=false}
     S.start=document.getElementById('sStart').value||S.start;S.name=document.getElementById('sName').value.trim().slice(0,12);
     S.target=Math.min(990,Math.max(300,+document.getElementById('sTarget').value||800));S.workMin=Math.max(30,+document.getElementById('sWork').value||90);S.offMin=Math.max(150,+document.getElementById('sOff').value||240);
